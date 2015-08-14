@@ -15,13 +15,19 @@ body {
 }
 
 html {
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  //font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-family: "PT Serif", Georgia, "Times New Roman", serif;
   font-size: 16px;
   line-height: 1.5;
 
   @media (min-width: 38em) {
     font-size: 20px;
   }
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  letter-spacing: -.025rem;
 }
 
 body {

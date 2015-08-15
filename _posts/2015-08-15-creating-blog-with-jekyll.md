@@ -1,6 +1,7 @@
 ---
 layout: post
 title: GitHub Pages + Jekyll + Poole = blog
+comments: true
 ---
 
 I finally decided to create my personal blog. Being a happy Git(Hub) user, I really liked the idea behind [Jekyll](http://jekyllrb.com) -

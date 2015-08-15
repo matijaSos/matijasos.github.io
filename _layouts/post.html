@@ -8,6 +8,10 @@ layout: default
   {{ content }}
 </article>
 
+{% if page.comments %}
+  {% include comments.html %}
+{% endif %}
+
 {% if site.related_posts != empty %}
 <aside class="related">
   <h2>Related Posts</h2>

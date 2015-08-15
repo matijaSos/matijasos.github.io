@@ -15,7 +15,7 @@ title: Home
     <time datetime="{{ post.date | date_to_xmlschema }}" class="post-date">{{ post.date | date_to_string }}</time>
 
     {{ post.content }}
-    <a href="{{ site.baseurl }}{{ post.url }}#disqus_thread"></a>
+    <a href="{{ site.baseurl }}{{ post.url }}#disqus_thread">Be the first to comment!</a>
 
   </article>
   {% endfor %}

@@ -8,7 +8,7 @@ layout: default
   {{ content }}
 </article>
 
-{% if page.comments %}
+{% if page.disable_comments != true %}
   {% include comments.html %}
 {% endif %}
 

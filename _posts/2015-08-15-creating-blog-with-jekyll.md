@@ -15,6 +15,9 @@ Also, Poole's style is based on [rems](https://github.com/poole/poole#rems-font-
 My work is actually very closely based on a great [post](http://joshualande.com/jekyll-github-pages-poole/) by [Joshua Lande](http://joshualande.com), so I'll
 just refer you there and add here a few extra things that you might find helpful.
 
+* TOC
+{:toc}
+
 ## How do I initiate my blog with Poole?
 
 I wasn't sure how to include it into my blog, do I have to clone Poole's GitHub repo and then do something?

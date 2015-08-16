@@ -11,6 +11,15 @@ url:                 http://matija.me
 paginate:            1
 baseurl:             ""
 
+# Conversion
+markdown: kramdown
+
+kramdown:
+  # Auto-generate ID's for headings
+  auto_ids: true
+  # Enable GitHub Flavored Markdown (fenced code blocks)
+  input: GFM
+
 # Assets
 #
 # We specify the directory for Jekyll so we can use @imports.

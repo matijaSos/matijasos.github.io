@@ -83,6 +83,14 @@ Turns out you could have also just replaced the icon without changing anything i
 
 But since I already got both sizes generated, I decided not to be lazy :).
 
+## Adding Disqus comment count
+
+Write about it here.
+
+## Anchor links for headers
+
+Explain about anchorjs or whatewer I end up using.
+
 ## VIM not highlighting .md files 
 
 If you're using VIM for file editing and your .md files are not highlighted, the problem is probably you are not using
@@ -107,3 +115,6 @@ That seems somewhat cleaner to me (or just more familiar :), so I'll stick with 
 Also, imagine if you got a guest to write on your blog. You'd just tell him to make a new branch, write a post there and issue a PR
 when he's done. Cool, right?
 
+## Tools overview
+
+List of the tools I used together with one word purpose.

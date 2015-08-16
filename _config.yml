@@ -17,8 +17,6 @@ markdown: kramdown
 kramdown:
   # Auto-generate ID's for headings
   auto_ids: true
-  # Enable GitHub Flavored Markdown (fenced code blocks)
-  input: GFM
 
 # Assets
 #

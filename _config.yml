@@ -7,7 +7,7 @@ relative_permalinks: true
 # Setup
 title:               Matija
 tagline:             blog about things
-url:                 http://matijasos.github.io
+url:                 http://matija.me
 paginate:            1
 baseurl:             ""
 

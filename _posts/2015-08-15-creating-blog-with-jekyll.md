@@ -85,7 +85,12 @@ But since I already got both sizes generated, I decided not to be lazy :).
 
 ## Adding Disqus comment count
 
-Write about it here.
+The blog layout proposed by Poole is similar to the one on [codinghorror](http://blog.codinghorror.com/) - a few latest posts can be
+seen on the home page in whole, and by clicking on a title you are sent to the specific URL with the selected post only.
+
+I'll refer to those two possible representations of a post as **expanded** and **unexpanded** (contracted somehow doesn't sound 
+right, since I'm showing the post's content in whole) states. Expanded is for when a post is shown on its specific URL, while unexpanded
+for when it is shown at blog homepage.
 
 ## Anchor links for headers
 

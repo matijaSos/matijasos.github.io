@@ -8,7 +8,7 @@ relative_permalinks: true
 title:               Matija
 tagline:             blog about things
 url:                 http://matija.me
-paginate:            1
+paginate:            3
 baseurl:             ""
 
 # Conversion
@@ -35,4 +35,5 @@ author:
 navbar_items:
     about: '/about'
     posts: '/posts'
+    reading: '/reading'
 

@@ -94,7 +94,7 @@ for when it is shown at blog homepage.
 
 ## Anchor links for headers
 
-Explain about anchorjs or whatewer I end up using.
+I used [AnchorJS](http://bryanbraun.github.io/anchorjs/) to achieve this.
 
 ## VIM not highlighting .md files 
 
@@ -119,7 +119,3 @@ That seems somewhat cleaner to me (or just more familiar :), so I'll stick with 
 
 Also, imagine if you got a guest to write on your blog. You'd just tell him to make a new branch, write a post there and issue a PR
 when he's done. Cool, right?
-
-## Tools overview
-
-List of the tools I used together with one word purpose.

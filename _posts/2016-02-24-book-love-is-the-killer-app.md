@@ -69,4 +69,4 @@ The whole concept is also very interactive and "lean" since readers immediately 
 what they would like to learn more about.
 
 There is a ton of awesome blog posts on various topics and I would love to have a way to 
-systemize that knowledge and keep of track of what I read and what I've learned from it.
+systemize that knowledge and keep a track of what I read and what I've learned from it.

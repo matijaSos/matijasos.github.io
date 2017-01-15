@@ -8,6 +8,7 @@ re-reading them, the purpose of this page is to keep them accessible.
 
 ## Personal Development
 * [The Only One Skill That, If You Have, Will Completely Change Your Life](http://growthzer.com/one-skill/)
+* [How to Find Your Life Purpose: Getting out of the Bubble](https://zenhabits.net/life-purpose/)
 
 ## Startups
 * [How to Get Startup Ideas](http://paulgraham.com/startupideas.html)

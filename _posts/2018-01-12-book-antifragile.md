@@ -6,5 +6,5 @@ title: "Antifragile: Things That Gain From Disorder"
 TBD
 
 ## Main takeaways
-* The power of rituals
-* Leading by weakness
+* Don't trust people with no skin in the game
+* Barbell strategy?

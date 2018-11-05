@@ -5,17 +5,32 @@ permalink:           pretty
 
 # Setup
 title:               Matija
-tagline:             blog about things
+tagline:             blog about startups, programming and other fun stuff.
 url:                 http://matija.me
 paginate:            3
 baseurl:             ""
 
 # Conversion
 markdown: kramdown
+# highlighter: rouge
 
 kramdown:
   # Auto-generate ID's for headings
   auto_ids: true
+
+  # NOTE(matija): this is not working currently.
+  # https://flinhong.com/2017/03/18/syntax-highlight-with-rouge-in-jekyll/
+  # https://github.com/jekyll/jekyll/issues/4619#issuecomment-191267346
+  # input: GFM
+  # syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: html
+    css_class: 'highlight'
+    span:
+        line_numbers: false
+    block:
+        line_numbers: true
+        start_line: 1
 
 # Assets
 #

@@ -61,6 +61,8 @@ transformation a list will still be a list, `Maybe`, will still be a `Maybe` etc
 ### Examples
 In the process of finding cool examples.
 
+* Show mapping over a function (e.g. parametrized newtype, like Parser in Real World Haskell).
+
 ### Sources and additional reading
 * [LYAH Functor explanation](http://learnyouahaskell.com/making-our-own-types-and-typeclasses#
 the-functor-typeclass)

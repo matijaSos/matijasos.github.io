@@ -49,7 +49,7 @@ mostCandy k = maximum . map (\c -> c `div` (k+1) + c `mod` (k+1))
 |---
 | Language | Lines | 100 runs
 |-
-| C++ | 9 | TBD
-| Haskell | 1 | TBD
+| C++ | 8 | TBD
+| Haskell | 2 | TBD
 
 Wow! Haskell solution is really amazing here, and this problem is perfect for it. 

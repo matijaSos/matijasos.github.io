@@ -142,9 +142,26 @@ lesson for the future.
 ### Haskell
 
 {% highlight haskell linenos %}
-threePartSplit :: Int -> Int -> (Int, Int)
-threePartSplit a d = (a + minIntervalSize, a + 2 * minIntervalSize)
-    where minIntervalSize = (d - a) `div` 3
+count :: Int -> Int -> Int
+count a b = length $ filter isMagic $ squares a b
+
+squares a b = takeWhile (<=b) $ dropWhile (<a) $ map (^2) [1..]
+
+digits :: Int -> [Int]
+digits 0 = []
+digits num = digits (num `div` 10) ++ [num `mod` 10]
+
+isMagic :: Int -> Bool
+isMagic num = and $ map check triplets
+    where
+        digs = digits num
+        -- Produces (digit, prevDigit, index) triplets.
+        triplets = zip3 (drop 1 digs) digs [1..]
+        -- Checks whether greater, smaller progression holds.
+        check (dig, prevDig, idx)
+            | idx `mod` 2 == 1  = dig > prevDig
+            | otherwise         = dig < prevDig
+
 {% endhighlight %}
 
 ### Comparison
@@ -152,11 +169,137 @@ threePartSplit a d = (a + minIntervalSize, a + 2 * minIntervalSize)
 |---
 | Language | Lines | 100 runs
 |-
-| C++ | 8 | TBD
-| Haskell | 3 | TBD
+| C++ | 40 | TBD
+| Haskell | 19 | TBD
 
-Although Haskell solutions has a bit less lines than C++ one (mostly due to C++ `class` plumbing),
-I would say expresiveness-wise solutions are the same. Since it is O(1) analytical solution, we
-don't need any looping or mapping or data structures, and with this concise way of 
-creating a vector C++ solution is also very nice to read.
+I really enjoyed writing this Haskell solution - I love how concise is the `count` function and how
+cleanly it breaks the problem into the subproblems that can be addressed (and tested) separately.
+I especially like `squares` function - how it starts with an infinite list and then we just "trim"
+it from the both sides until we get the desired result. This way of thinking makes it much easier
+for me to reason and thus much harder to introduce "off-1" type of bugs.
 
+What I find as most different compared to C++ solution is the situation where we 
+have to check the digits, and compare each digit with the previous digit.
+Since we don't do looping as in C++ we have to in advance construct all the "checks" with
+all the information needed.
+
+## [ModularQuadrant - Div 2 Hard](https://community.topcoder.com/stat?c=problem_statement&pm=15236)
+
+**Short problem statement**: We are given an infinite, zero-indexed square grid. Each cell contains
+`max(row, column) mod 3` value. Given a rectangle in that grid, return the sum of its cells.
+
+**Solution**: The naive solution would be to go over all the cells in the given rectangle, calculate
+the values and sum it all together. However, since both width and height of the rectangle can be
+up to 10<sup>9</sup>, it would be way to slow (we'd need to traverse over 10<sup>18</sup> cells in
+the worst case).
+
+So we need to be smarter and somehow use the properties of this grid to our advantage. Let's examine
+the portion of the grid of size 10 x 10:
+
+![Image 1]({{ site.baseurl }}/images/744-hard-image1.png){: style="margin: 0 auto; width: 500px;"}
+
+I emphasized the diagonal and the red box is an example of rectangle for which we want to calculate
+the sum of its cells.
+
+We can notice several things here:
+
+* `0 1 2` pattern repeating itself due to `mod 3`
+* The grid is symmetrical in respect to the diagonal (i-th row == i-th column)
+
+My first approach was to calculate sum of each row separately and then sum that. I could calculate
+the sum of row in `O(1)` (observe the patten in a row - number is 
+repeated until the diagonal and then starts cycling),
+but we still have 10<sup>9</sup> rows so that was too slow (one test case that took 
+~6s kept failing).
+
+So we need to be even smarter than that - if calculating a row in `O(1)` is possible, is there 
+also some kind of a rectangle whose sum we could calculate in `O(1)`?
+
+If we could calculate sum of any rectangle that has upper left corner in `0, 0` fast enough,
+that would be great, because then we use that to calculate sum of any rectangle in the 
+following way:
+
+{% highlight c++ %}
+calcRectSum(r1, r2, c1, c2) = calcRect00Sum(r2, c2) - calcRect00Sum(r2, c1 - 1) - 
+                              calcRect00Sum(r1 - 1, c2) + calcRect00Sum(r1 - 1, c1 - 1)
+{% endhighlight %}
+
+![Image 2]({{ site.baseurl }}/images/744-hard-image2-subtraction.png){: style="margin: 0 auto; width: 500px;"}
+
+This image should also illustrate what is going on in the formula above (I apologize for the
+colored mess). If we want to calculate sum of the red box (in the first image) we start with a big
+purple rectangle and then from it substract the green and blue one. We can see the only thing that
+is left is what was original a red rectangle. Also, as blue and green rectangles intersect we've
+subtracted that part twice, so we have to add it once to fix that.
+
+That's it, we've managed to express the area of any rectangle with only the rectangles that
+start in the `0, 0`, upper left corner. So now we only have to find out how to efficiently
+calculate sum of such a rectangle (`calcRect00Sum` method from above).
+
+If we look at such a rectangle, we can divide it into two parts - square starting at `(0, 0)` (green)
+and the rest of it (orange).
+
+![Image 3]({{ site.baseurl }}/images/744-hard-image3.png){: style="margin: 0 auto; width: 500px;"}
+
+Calculating a square sum - we can see that numbers are progressing in amount as odd numbers,
+`1, 3, 5, 7, 9, ...` and sum like that we can calculate in `O(1)` so we can use that.
+
+Calculating the rest - we see it has a repeating pattern in a row so we can use that to
+calculate the sum.
+
+### C++
+
+{% highlight c++ linenos %}
+class ModularQuadrant
+{
+public:
+    long long seriesSum(int start, int step, int length) {
+        int end = start + (length - 1) * step;
+
+        long long sum = (long long)(start + end) * (length / 2);
+        if (length % 2 == 1) sum += (start + end) / 2;
+
+        return sum;
+    }
+
+    long long calcSquare00Sum(int a) {
+        // Number occurrences of 1.
+        long long onesOcc = a / 3 + (a % 3 == 2 ? 1 : 0);
+
+        // Number occurrences of 2.
+        long long twosOcc = a / 3;
+
+        long long onesSum = seriesSum(3, 6, onesOcc);
+        long long twosSum = 2 * seriesSum(5, 6, twosOcc);
+
+        return onesSum + twosSum;
+    }
+
+    long long calcRectRightOfDiagonalSum(int startCol, int length, int height) {
+        long long rowSum = (length / 3) * (long long)3;
+
+        // Add remainder part.
+        int currVal = startCol % 3;
+        for (int i = 0; i < (length % 3); i++) {
+            rowSum += currVal;
+            currVal = (currVal + 1) % 3;
+        }
+
+        return rowSum * height;
+    }
+
+    long long calcRect00Sum(int r, int c) {
+        // The grid is symmetrical so it is the same.
+        if (r > c) return calcRect00Sum(c, r);
+
+        return calcSquare00Sum(r + 1) + calcRectRightOfDiagonalSum(r + 1, c - r, r + 1);
+    }
+
+    long long sum(int r1, int r2, int c1, int c2)
+    {
+        return calcRect00Sum(r2, c2) - calcRect00Sum(r2, c1 - 1) - calcRect00Sum(r1 - 1, c2)
+            + calcRect00Sum(r1 - 1, c1 - 1);
+    }
+
+};
+{% endhighlight %}

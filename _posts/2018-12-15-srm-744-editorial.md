@@ -243,6 +243,31 @@ and the rest of it (orange).
 
 Calculating a square sum - we can see that numbers are progressing in amount as odd numbers,
 `1, 3, 5, 7, 9, ...` and sum like that we can calculate in `O(1)` so we can use that.
+Let's take a look at a bit bigger example of a square starting at `(0, 0)`:
+
+![Image 4]({{ site.baseurl }}/images/744-hard-image4.png){: style="margin: 0 auto; width: 500px;"}
+
+Here we can see that the square consists of "L-shaped" layers (colored in the image) that progress
+in the amount of cells as odd numbers (`1, 3, 5, 7, ...`), which is shown by numbers above the
+columns in the image.  
+We can also see that for a particular value (`0, 1, 2`) that the number of cells in the layer
+progresses by 6 (e.g. first we have 3 `1`s, than 9, than 15, ...) - because of this period of 3,
+we have to "skip" two other numbers before coming to the next occurrence of the one that is
+observed.
+
+So the sum of the square in the image above can be calculated as:
+
+```
+0 * (1 + 7 + 13) + 1 * (3 + 9) + 2 * (5 + 11) = 44
+```
+
+We can generalize that to multiplying each value (`0, 1, 2`) with a sum of series that starts at
+a particular number, has a step of `6` and has number of elements that is equal to the number of
+"layers" this value has in the square.
+
+If we can calculate the sum of this series in `O(1)` (and we can, check the `seriesSum` method in
+the code below), that means this whole calculation is done in `O(1)`, which is exactly what we
+were aiming for.
 
 Calculating the rest - we see it has a repeating pattern in a row so we can use that to
 calculate the sum.
@@ -303,3 +328,54 @@ public:
 
 };
 {% endhighlight %}
+
+### Haskell
+
+{% highlight haskell linenos %}
+seriesSum :: Int -> Int -> Int -> Int
+seriesSum start step length = (start + end) * (length `div` 2) + middleIfOdd
+    where
+        end = start + (length - 1) * step
+        -- If there is odd number of elements, we have to add a middle element.
+        middleIfOdd = if length `mod` 2 == 1 then (start + end) `div` 2 else 0
+
+calcSquare00Sum :: Int -> Int
+calcSquare00Sum a = (seriesSum 3 6 onesOcc) + 2 * (seriesSum 5 6 twosOcc)
+    where
+        onesOcc = a `div` 3 + if a `mod` 3 == 2 then 1 else 0
+        twosOcc = a `div` 3
+
+calcRectRightOfDiagonalSum startCol length height = rowSum * height
+    where
+        rowSum = (length `div` 3) * 3 + remains
+        startValue = startCol `mod` 3
+        remains = sum $ map (\r -> (startValue + (r-1)) `mod` 3)[1..(length `mod` 3)]
+
+calcRect00Sum :: Int -> Int -> Int
+calcRect00Sum r c
+    | r > c = calcRect00Sum c r
+    | otherwise = calcSquare00Sum (r + 1) + calcRectRightOfDiagonalSum (r + 1) (c - r) (r + 1)
+
+rectSum :: Int -> Int -> Int -> Int -> Int
+rectSum r1 r2 c1 c2 = totalRect - leftRect - topRect + intersectRect
+    where
+        totalRect       = calcRect00Sum r2 c2
+        leftRect        = calcRect00Sum r2 (c1 - 1)
+        topRect         = calcRect00Sum (r1 - 1) c2
+        intersectRect   = calcRect00Sum (r1 -1) (c1 - 1)
+{% endhighlight %}
+
+### Comparison
+
+|---
+| Language | Lines | 100 runs
+|-
+| C++ | 52 | TBD
+| Haskell | 31 | TBD
+
+Implementing Haskell solution was pretty straightforward to implement from the C++ solution, we
+already divided the problem nicely into functions so we could just implement them in Haskell.
+
+The Haskell solution is naturally shorter due to more dense syntax, but the logic stayed pretty
+much the same. The final function in Haskell solution, `rectSum`, I had to rename because
+`sum` is a method that comes in Haskell's standard library.

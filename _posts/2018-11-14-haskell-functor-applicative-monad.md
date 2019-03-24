@@ -112,4 +112,49 @@ After that we can just add all the other arguments by chaining them with `<*>` f
 
 ## Monad
 
-Most cool stuff.
+### Motivation
+I am not sure how well did I get the motivation, but here is what I have for now: when dealing
+with values with a context, monad is the most general tool for it. When we have values with context
+and they are flowing from one method to another, somebody always has to "handle" the context.
+
+In order to avoid doing it manually (which would increase the complexity a lot, and its a
+repetitive process),
+the monads step in - with them, we can "pretend" we are dealing
+with "normal" functions while they appropriately handle the context for us.
+
+### One-line explanation
+When dealing with values with context, `Monad` typeclass helps us by automatically handling the
+context for us.
+
+### Typeclass definition
+{% highlight haskell %}
+class Monad m where
+    return :: a -> m a
+    (>>=) :: m a -> (a -> m b) -> m b
+    (>>) :: m a -> m b -> m b
+    fail :: String -> m a
+{% endhighlight %}
+
+* `return` is just like `pure` in `Applicative`, putting value in a default, minimal context.
+* `(>>=)`, pronounced "bind", is the main `Monad` function. It allows us to "feed" a value with a
+context into a function that takes a pure value but returns also a value with a context.
+* `(>>)` is used when we want to "execute" one monad before another, without actually caring for its
+result (because it probably changes some state, has some side-effect).
+* `fail` - apparently never used explicitly in code, but by Haskell for some special cases. Did not
+see it in action so far.
+
+### Examples
+* Maybe example -> Show how would handling context look like
+without monad
+* Parsec example
+* IO example
+
+### WIP, ideas
+I could write about the situations that drove the inception of the above concepts. E.g.:
+
+1. First we just had functions that returned a single, simple value.
+2. But soon, we also needed functions that returned multiple different values
+(e.g. because they can fail)
+3. The values with context were created to address that need.
+4. But then we needed to handle such types of values throughout the code -> we needed new tools
+to help us with that.

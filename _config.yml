@@ -53,3 +53,5 @@ navbar_items:
     posts: '/posts'
     reading: '/reading'
 
+# Gems
+plugins: [jekyll-paginate]

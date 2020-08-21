@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "Intro to type-level programming in Haskell"
+title: "Intro to type-level programming in Haskell - Part 1"
 ---
 
 I heard a lot lately about using types in Haskell to describe function arguments in more details
@@ -24,7 +24,7 @@ we can say *"this function takes a non-empty list"*, or
 *"this function takes Int which is > 10 and < 127"* (although not yet sure how this last one
 would be done).
 
-## Example 1: A function that accepts only a non-empty list
+## Example: A function that accepts only a non-empty list
 
 We want to be able to tell from its type whether a list is empty or not. To do that we will
 create a new type which will have that information stored in it.
@@ -277,3 +277,131 @@ Although smart constructors might be a solution in some simpler cases (e.g. when
 and we are merely "casting" general type params into the specific ones, such as we did with `End`),
 in this case where we have a recursive data structure it wasn't enough because the the initial
 data constructor was too rigid.
+
+### What is `List Int Double`?
+
+Well, `List Int Double` means nothing, it doesn't make sense. We can only construct and know how
+to work with lists whose `empty` type parameter is either `Empty` or `NonEmpty`.
+
+But the problem is although it doesn't make sense, we can still write things like this and it will
+happily compile:
+
+{% highlight haskell %}
+someListFn :: List a Bool -> Int
+someListFn list = 23
+{% endhighlight %}
+
+There is no way to execute this function since there is no way to construct such a list where
+`empty` type param is `Bool`, but strange stuff can appear in our codebase and we cannot detect
+it in compile time.
+
+Here is a more "real world" example when this could be a problem: let's say you are
+using `Empty` and `NonEmpty` types for list as we explained above,
+but you are also using `Yes` and `No` types for something else in your codebase. And then your
+colleague starts implementing some new functionality for your lists, and by mistake he starts using
+`Yes` and `No` in the place of `empty`. And there is nothing to stop him until he actually tries to
+connect everything together and run the code!
+
+The problem we see is there is no "safety" at the type level, we cannot say *"`empty` can be only
+this kind of type"*. But, there is a mechanism that can help us.
+
+### Not all types are used in the same way
+
+Just a short observation before we continue. I wanted to put attention to the fact that we are now
+differentiating between two possible uses of a type:
+* type is used to *produce values* (store data) - e.g. `Int`, `Maybe Bool`, ...
+* type is used only *at the type level as a designation of something*, never producing an
+actual value - e.g. `Empty` and `NonEmpty`
+
+Despite these very different uses, we currently don't have a way to differentiate between such
+types - we declare them both in the same way and Haskell can't tell how are we going to use them
+later.
+
+### Data kinds
+
+In standard Haskell each type has a *kind*, which can be thought of as a *"type of a type"*. E.g.:
+
+{% highlight haskell %}
+> :k Int
+Int :: *                // Has values (e.g. 1, 2, 3, ...).
+
+> :k Maybe
+Maybe :: * -> *         // When given a value-producing type, has values.
+
+> :k Either
+Either :: * -> * -> *   // When given 2 value-producing types, has value.
+{% endhighlight %}
+
+And that is it, all kinds are expressed with `*`s and automatically derived for us. `*` means
+*a type that has values*.
+
+But as we saw earlier, this is not enough for us. We also want to cover that other use case so we
+can say *"here goes only type(s) that tell us whether a list is empty or not."*
+
+And this is exactly what `DataKinds` extension allows us to do, it lets us define other kinds
+besides `*`:
+
+{% highlight haskell %}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+
+data ListStatus = Empty | NonEmpty
+
+data List a empty where
+    End :: List a 'Empty 
+    Cons :: a -> List a empty -> List a 'NonEmpty
+{% endhighlight %}
+
+Now let's see what happened here. We made a new type `ListStatus` and then we use its data
+constructors (prefixed with `'`) in the place of types in GADT for `List`. Wut?
+
+The thing with `DataKinds` is the following: for every type we create it additionaly creates for us
+new types, named after data constructors we used and prefixed with `'`. It also creates a new kind,
+which is named after the type's name. Specifically for this case:
+* `DataKinds` created for us two extra types, `'Empty` and `'NonEmpty`
+* Kinds of these new types are `ListStatus`
+* These types cannot have values, they can be used only at the type level
+
+I was really confused the first time I realized this. This extension just like that creates extra
+types for us, without even asking us about it, for every type we create!
+
+Since we are using only types of `ListStatus` kind in `List`'s data constructors' signatures,
+Haskell inferred from that that `empty` type param must be of kind `ListStatus` and won't let us
+use anythng else. If we try to create a function which takes `List a Bool`, we will receive the
+following error:
+
+`Expected kind ‘ListStatus’, but ‘Bool’ has kind ‘*’`
+
+Which is exactly what we wanted! With this we achieved *kind safety*, besides the usual
+*type safety* in the compile time.
+
+To make things even more explicit, we can turn on `KindSignatures` extension which lets us
+explicitly define kinds of type parameters in a type:
+
+{% highlight haskell %}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
+
+data ListStatus = Empty | NonEmpty
+
+data List (a :: * ) (empty :: ListStatus) where
+    End :: List a 'Empty 
+    Cons :: a -> List a empty -> List a 'NonEmpty
+{% endhighlight %}
+
+Now everybody can see that `a` is a "standard" type that has values, while `empty` can be only
+`'Empty` or `'NonEmpty`. We didn't have to write this explicit version as Haskell can infer it on
+its own, but it is a matter of style and documentation. We can also omit `'` in front of types and
+Haskell in a lot of cases can infer by itself if it is a type or data constructor. I found it easier
+to have everything explicit for now, a lot is going on behind the scenes so this made it clearer
+for me.
+
+And that is it for this first part! We learned about type-level programming, how to use GADTs and
+data kinds and saw everything together in action. Hope you found it useful, please let me know in
+the comments if you have any questions, I said something wrong or I can explain something better.
+
+In the Part 2 we will go even deeper and take a look at some more cool examples that build on top
+of this one! Here's a teaser question: with our `List a empty` that we developed above, how would
+you implement `safeTail` function which works only on non-empty lists,
+analogous to what we have done with `safeHead`? Can you do it, what is its return type?

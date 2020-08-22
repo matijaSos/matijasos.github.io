@@ -4,13 +4,14 @@ title: "Intro to type-level programming in Haskell - Part 1"
 ---
 
 I heard a lot lately about using types in Haskell to describe function arguments in more details
-(e.g. function takes a list that is non-empty) and thus provide higher compile-time safety.
+(e.g. function takes a list that is non-empty) and thus achieve higher compile-time safety.
 It sounded cool so I decided to research more about it and I created this blog post as a memo of
-what I learned so far.
+what I learned.
 
 Resources I used:
 - [Tutorial on GADTs and DataKinds by andre.tips](https://web.archive.org/web/20200212212525/https://andre.tips/wmh/generalized-algebraic-data-types-and-data-kinds/)
-    - explains GADTs well, but DataKinds not so much. But would recommend to start with this one, although link seems to be down currently?
+    - explains GADTs well, but DataKinds not so much. I would recommend to start with this one.
+    [The page seems to be down, so I linked to the Wayback Machine url.]
 - [Basic Type Level Programming in Haskell by Matt Parsons](https://www.parsonsmatt.org/2017/04/26/basic_type_level_programming_in_haskell.html)
     - pretty extensive, but not so intuitive. Still the most complete intro (and pretty much
 the only one) to the topic. Most of my examples below are taken from it.
@@ -21,8 +22,10 @@ As I wrote above, my current understanding is that with it we can add more info 
 signature of a function, making it "safer" in the compile time.
 E.g. instead of just saying *"this function takes a list"*
 we can say *"this function takes a non-empty list"*, or
-*"this function takes Int which is > 10 and < 127"* (although not yet sure how this last one
-would be done).
+*"this function takes Int which is > 10 and < 127"* (although this last one might be solved just by
+creating an appropriate type, e.g. using TH?).
+
+TODO: I would love to learn about more examples where this is used.
 
 ## Example: A function that accepts only a non-empty list
 
@@ -123,7 +126,7 @@ never be anything of type `empty` in some value of this type).
 But turns out it does make sense, since we use it as a designation at the type level only, to show
 that an
 underlying value has a certain property (empty or non-empty in this case). Such types, which have a
-type parameter(s) on the left side that doesn't appear on the right, are
+type parameter(s) on the left side that don't appear on the right are
 also called [*phantom types*](https://wiki.haskell.org/Phantom_type).
 
 Let's see now what happens if we create an instance of our new `List` and test its type in GHCi:
@@ -179,7 +182,7 @@ data List a empty =
     Cons a (List a empty)   -- Cons :: a -> List a empty -> List a empty
 {% endhighlight %}
 
-As we mentioned, the types in comments are automatically derived and we cannot control them. But
+As we mentioned, the types in the comments are automatically derived and we cannot control them. But
 that is exactly what we want to do, and GADTs let us achieve that using the following syntax:
 
 {% highlight haskell %}
@@ -275,7 +278,7 @@ to do that and this is why we got an error during compilation.
 
 Although smart constructors might be a solution in some simpler cases (e.g. when we have "flat" data
 and we are merely "casting" general type params into the specific ones, such as we did with `End`),
-in this case where we have a recursive data structure it wasn't enough because the the initial
+in this case where we have a recursive data structure it wasn't enough because the initial
 data constructor was too rigid.
 
 ### What is `List Int Double`?
@@ -329,7 +332,7 @@ Int :: *                // Has values (e.g. 1, 2, 3, ...).
 Maybe :: * -> *         // When given a value-producing type, has values.
 
 > :k Either
-Either :: * -> * -> *   // When given 2 value-producing types, has value.
+Either :: * -> * -> *   // When given 2 value-producing types, has values.
 {% endhighlight %}
 
 And that is it, all kinds are expressed with `*`s and automatically derived for us. `*` means

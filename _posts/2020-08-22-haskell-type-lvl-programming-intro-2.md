@@ -65,6 +65,9 @@ safeTail (Cons elem rest) = undefined
 It doesn't say *"you have type param value `smth` which doesn't appear anywhere on the left side."*
 which surprised me a bit. I still wonder why could that be valid?
 
+*NOTE*: On the other hand, we can have `Nothing :: Maybe a` and in that case it is ok to have `a` on
+the right side only, so I guess that is ok actually.
+
 But if we try to compile the original function, it fails. The error message is a bit longer as
 usual with Haskell, but from what I understood it basically says the following: *"I can see from
 the `List` constructors that any list you create will have a specific type, and you are here
@@ -100,7 +103,8 @@ type from which we can tell the list's length.
 
 Before we had just two values (or "list states") that we needed to encode with types, `Empty` and
 `NonEmpty`, so we created two types (or one type with two data constructors when we used
-`DataKinds`). But this time we have infinite amount of values, since length of a list can be
+`DataKinds` - then from that `DataKinds` created the types for us).
+But this time we have infinite amount of values, since length of a list can be
 any natural number. So how do we represent that with types?
 We can do it in the same way we defined the list itself, recursively:
 
@@ -116,7 +120,7 @@ type Three = Succ Two -- or Succ (Succ (Succ Zero))
 
 `Succ` stands for *Successor*. We can see that since `Succ` is a parametrized type constructor
 we can actually from it create infinite amount of types and that solves our problem. This works,
-but as in a previous example it would be better to use `DataKinds` so we have type safety
+but as in a previous example it would be better to use `DataKinds` so we have kind safety
 (otherwise somebody can write nonsense such as `Succ Bool` and it would be a valid term):
 
 {% highlight haskell %}
@@ -222,7 +226,7 @@ operate with `safeTail` and `safeHead` on it. Is there anything else we might ne
 ### List concatenation - making it work on type level
 
 For example, what if we wanted to concatenate two lists? Logically, we know that the resulting list
-will have length which is sum of lengths of the input lists. But how do we represent it on type
+will have length which is the sum of lengths of the input lists. But how do we represent it on type
 level?
 
 Let's try to see what will the function signature look like. We will call this function `append`
@@ -246,12 +250,64 @@ twoEmptyLists :: List 'Zero a
 {% endhighlight %}
 
 So we take two lists of lengths `n` and `m` respectively (we don't care if
-there are empty or not in this case, since there isn't any "unsafe" scenario) and we
+they are empty or not in this case, since there isn't any "unsafe" scenario) and we
 produce a new list of length `n + m`. But how do we represent its
 length, what do we put in place of `?`?  
 Obviously, we want to sum `m` and `n` - but how do we do that on the type level?
 
+Wouldn't it be handy if there was a way to define a function that operates on types? Then we could
+define things like this:
+
+{% highlight haskell %}
+append :: List n a -> List m a -> List (Add n m) a
+{% endhighlight %}
+
+Where `Add n m` is a "type" function that would take two types `n` and `m` and produce a new type
+which would represent their sum.
+
 ### Type families - functions that operate on types
 
 Turns out there is a special mechanism for this in Haskell and it is provided in form of another
-language extension named `TypeFamilies`.
+language extension named `TypeFamilies`. This is how we would define our type family `Add n m`:
+
+{% highlight haskell %}
+type family Add (x :: Nat) (y :: Nat) :: Nat where
+Add 'Zero n = n
+Add ('Succ n) m = Add n ('Succ m)
+{% endhighlight %}
+
+Since we are dealing with recursive types (`'Succ`), this type function has to work in the same way.
+In the base case when the left type is `'Zero`, we simply return the second type. In the general
+case we keep "deconstructing" the left argument and "piling" it on the right type until we
+reach the base case.
+
+This looks like a logical way to do it. But if, we try to compile it we will get the following
+error:
+
+{% highlight haskell %}
+• The type family application
+    is no smaller than the instance head ‘Add n ('Succ m)’
+    (Use UndecidableInstances to permit this)
+• In the equations for closed type family ‘Add’
+    In the type family declaration for ‘Add’
+{% endhighlight %}
+
+The problem is that GHC is here scared that our general recursion case might never terminate. 
+I checked out docs of `UndecidableInstances` and here is what it says: 
+*These restrictions ensure that
+instance resolution terminates: each reduction step makes the problem smaller by at
+least one constructor.*
+
+And this is exactly what is the problem: we made a reduction step, but we still have
+the same number of constructors (`'Succ`) - we just moved it from one argument to another and that
+made GHC suspicious we made a system that terminates.
+
+If we e.g. did this (although it is conceptually wrong, does not produce the result we want):
+
+{% highlight haskell %}
+Add ('Succ n) m = Add n  m
+{% endhighlight %}
+
+we wouldn't get any errors - GHC sees that we got rid of one `'Succ` and is happy and convinced
+that we will eventually come to the end.
+

@@ -84,7 +84,7 @@ is the type of the returned list going to be!
 *NOTE: in other tutorials often is used the term "Vector" instead of "List",
 which we used so far.*
 
-What is the next piece of information about the list we can know, besides is it empty or not? It is
+What is the next piece of information about the list we could know, besides whether it is empty or not? It is
 its length - and if we could knew that, we could implement `safeTail` without problems. We wouldn't
 worry what "type" of *non-emptiness* input list has -  we would just reduce the length by one.
 
@@ -121,7 +121,7 @@ type Three = Succ Two -- or Succ (Succ (Succ Zero))
 `Succ` stands for *Successor*. We can see that since `Succ` is a parametrized type constructor
 we can actually from it create infinite amount of types and that solves our problem. This works,
 but as in a previous example it would be better to use `DataKinds` so we have kind safety
-(otherwise somebody can write nonsense such as `Succ Bool` and it would be a valid term):
+(otherwise somebody could write nonsense such as `Succ Bool` and it would be a valid term):
 
 {% highlight haskell %}
 {-# LANGUAGE DataKinds #-}
@@ -226,7 +226,7 @@ operate with `safeTail` and `safeHead` on it. Is there anything else we might ne
 ### List concatenation - making it work on type level
 
 For example, what if we wanted to concatenate two lists? Logically, we know that the resulting list
-will have length which is the sum of lengths of the input lists. But how do we represent it on type
+will have length which is the sum of lengths of the input lists. But how do we represent that on type
 level?
 
 Let's try to see what will the function signature look like. We will call this function `append`
@@ -240,7 +240,7 @@ append :: List n a -> List m a -> List ? a
 Let's also see a few examples of how it would work:
 
 {% highlight haskell %}
-> twoElems = append (List "a" End) (List "b" End)
+> twoElems = append (Cons "a" End) (Cons "b" End)
 > :t twoElems
 twoElems :: List ('Succ ('Succ 'Zero)) [Char]
 
@@ -253,7 +253,7 @@ So we take two lists of lengths `n` and `m` respectively (we don't care if
 they are empty or not in this case, since there isn't any "unsafe" scenario) and we
 produce a new list of length `n + m`. But how do we represent its
 length, what do we put in place of `?`?  
-Obviously, we want to sum `m` and `n` - but how do we do that on the type level?
+Obviously, we want to sum `m` and `n` - but how do we do that on a type level?
 
 Wouldn't it be handy if there was a way to define a function that operates on types? Then we could
 define things like this:
@@ -300,7 +300,7 @@ least one constructor.*
 
 And this is exactly what is the problem: we made a reduction step, but we still have
 the same number of constructors (`'Succ`) - we just moved it from one argument to another and that
-made GHC suspicious we made a system that terminates.
+made GHC suspicious we are designing a system that actually terminates.
 
 If we e.g. did this (although it is conceptually wrong, does not produce the result we want):
 
@@ -311,3 +311,113 @@ Add ('Succ n) m = Add n  m
 we wouldn't get any errors - GHC sees that we got rid of one `'Succ` and is happy and convinced
 that we will eventually come to the end.
 
+*TODO: Why GHC doesn't complain if we do `Add ('Succ n) m = 'Succ (Add n m)`, since we still have the same number
+of constructors? Is it because `Add` is not at the beginning anymore?*
+
+This was pretty impressive for me, I didn't know GHC watches over this kind of stuff, "counting" how
+our recursion is doing.
+
+Anyhow, we can solve the problem from above by introducing `UndecidableInstances` extension. With it, our code
+from above successfully compiles.
+
+Now that we know how to sort out things on the type-level, let's actually write the function which appends two
+lists:
+
+{% highlight haskell %}
+append :: List n a -> List m a -> List (Add n m) a
+append End xs = xs
+append (Cons elem rest) xs = Cons elem (append rest xs)
+{% endhighlight %}
+
+We again do it recursively, always taking the first element "out" and calling `append` again for the reduced first
+list and the second list (general case). When first list reaches `End`, `append` will just return the
+second list (base case).
+
+But, if we try compile this we get an error! This is what it says:
+{% highlight haskell %}
+• Could not deduce: Add n1 ('Succ m) ~ 'Succ (Add n1 m)
+      from the context: n ~ 'Succ n1
+        bound by a pattern with constructor:
+                   Cons :: forall a (n :: Nat).
+                            a -> List n a -> List ('Succ n) a,
+                 in an equation for ‘append’
+        at gadtNonEmptyList.hs:121:9-20
+      Expected type: List (Add n m) a
+        Actual type: List ('Succ (Add n1 m)) a
+    • In the expression: Cons a (append rest xs)
+{% endhighlight %}
+
+What this error says is it basically complains that return type is not correct, it is different from what we
+declared in the function signature. In the signature we said that return type is `List (Add n m) a`. When
+`append`'s function body is evaluated, `Cons elem (append rest xs)`, it will be of
+type `List ('Succ (Add n m) a)`.
+
+Why? Let's deconstruct `Cons elem (append rest xs)` from the inside out. `append rest xs` is of
+type `List (Add n m) a`. And `Cons`'s type signature is `Cons :: a -> List n a -> List ('Succ n) a` - whatever `n`
+is, `Cons` will put `'Succ` on it. So in our case, where `n` is `Add n m` (from `append rest xs`), applying `Cons`
+on it will produce type `List ('Succ (Add n m)) a`. And what we promised to GHC in `append`'s return type was
+`List (Add n m) a`.
+
+Even if GHC tries to evaluate `Add n m` to see what is under the hood, it will again see from the general step
+that `Add x y` is produced.
+So when comparing returned and expected type (`List ('Succ (Add n m)) a` and `List (Add n m) a`), GHC 
+sees that extra `'Succ` and
+concludes *"wait, this is not what I expected, I was looking for
+`Add` but I got `'Succ`"* and throws an error.
+
+The root of the problem is in what we experienced when defining `Add n m` type family,
+that GHC doesn't understand that `Add n m` will eventually produce a concrete type (`'Succ` in this case),
+because of the way we designed our recursion which always puts `Add` in the front.
+We managed previously to patch it up with enabling `UndecidableInstances`, but now it is coming back
+to haunt us again.
+
+We can solve it by slightly changing `Add`'s definition, the general case of the recursion:
+{% highlight haskell %}
+type family Add (x :: Nat) (y :: Nat) :: Nat where
+Add 'Zero n = n
+Add ('Succ n) m = 'Succ (Add n m)
+-- Before: Add ('Succ n) m = Add n ('Succ m)
+{% endhighlight %}
+
+So what we did is rearrange things a bit so now `'Succ` comes in front. With this change we don't get any errors
+and we can also disable `UndecidableInstances`. When GHC sees this it decides our
+recursion will eventually terminate and doesn't complatin. I am not sure exactly why, my guess is because here we
+applied `Add` to the "reduced" argument (`n`, while input was `'Succ n`) so that tells GHC that our recursion
+is moving in the right direction, that we are reducing the problem.
+Previously we just moved `'Succ` from one argument to another so I guess that was
+the problem, we haven't "reduced" anything. This is my current assumption and I would still like to understand this
+better.
+
+And this is it, with this last change everything works as expected! Now we can see `append` in action, but let's
+first just do one more thing:
+{% highlight haskell %}
+instance Show a => Show (List n a) where
+    show End = "End"
+    show (Cons e es) = show e ++ " - " ++ (show es)
+{% endhighlight %}
+I implemented `List` as an instance of `Show` typeclass so we can nicely visualize our lists.
+
+Let's now see `append` on a few examples:
+{% highlight haskell %}
+> append (List "a" End) (List "b" End)
+"a" - "b" - End
+
+> :t append ((List "a" End) (List "b" End))
+ append ((List "a" End) (List "b" End)) :: List ('Succ ('Succ Zero)) [Char]
+
+> append (List "a" End) End
+"a" - End
+{% endhighlight %}
+
+We can see how everything works and also that types accurrately reflect number of elements in the list.
+
+For the end, here some of my thoughts on type-level programming after trying it out on these
+examples:
+* Type-level programming let's us put put more features/properties into types and achieve compile
+time safety for them, but not without a cost - we have to program things both on type and
+data level (e.g. as we did with `append` function).
+* It is important to consider how we will implement and structure types to match well in all instances, since
+it is possible run into non-obvious errors such as we hadd with `Add n m`.
+
+All together it was really cool for me to learn about this! I hope you found it useful - let me know if you
+have any questions or if I could have done anything better.

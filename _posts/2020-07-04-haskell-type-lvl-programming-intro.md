@@ -404,7 +404,8 @@ And that is it for this first part! We learned about type-level programming, how
 data kinds and saw everything together in action. Hope you found it useful, please let me know in
 the comments if you have any questions, I said something wrong or I can explain something better.
 
-In the Part 2 we will go even deeper and take a look at some more cool examples that build on top
+In [Part 2](http://matija.me/2020/08/22/haskell-type-lvl-programming-intro-2/) we will go
+even deeper and take a look at some more cool examples that build on top
 of this one! Here's a teaser question: with our `List a empty` that we developed above, how would
 you implement `safeTail` function which works only on non-empty lists,
 analogous to what we have done with `safeHead`? Can you do it, what is its return type?

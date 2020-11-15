@@ -144,7 +144,7 @@ So that is it! Now you know what "monads don't compose" means and why it is impo
 
 ## MaybeT
 
-We used it as an example in the introduction, but let's now officially look at it.
+We used it as an example in the introduction, but let's now officially take look at it.
 
 From the [docs](http://hackage.haskell.org/package/transformers-0.5.6.2/docs/Control-Monad-Trans-Maybe.html):
 
@@ -183,11 +183,62 @@ instance Monad (MaybeT m) where
     -- if a computation within monad failed, shortcircuits to failed.
     (>>=) :: MaybeT m a -> (a -> MaybeT m b) -> MaybeT m b
     x >>= f = MaybeT $ do -- entering inner monad m
-        v <- runMaybeT x  -- unpacking x from `MaybeT m a` to `a`
+        v <- runMaybeT x  -- unpacking x from `MaybeT m a` to `Maybe a`
         case v of
             Nothing -> return Nothing
             Just y -> runMaybeT (f y)
-        
 {% endhighlight %}
 
+We can see that actually here `MaybeT` does the heavy lifting for us, what we previously did
+manually (staircasing example) - it operates within `m` (`IO` in the example) and gets to `Maybe a`
+and then checks does that "manual" check whether it is `Nothing` or not.
+
+## Lifting
+
+We said monad transformers are all about combining the powers of two or more monads. With our
+`MaybeT IO a` example we've shown how we can get `Maybe`'s power and make sure that the whole computation is
+short-circuited to `Nothing` if some sub-computation failed. But what if we wanted to do
+some IO stuff, e.g. print `Fetching data...`?
+
+This is why we have `lift`, which is the only function of `MonadTrans` typeclass:
+
+{% highlight haskell %}
+class MonadTrans t where
+    -- | Lift a computation from the argument monad to the constructed monad.
+    lift :: (Monad m) => m a -> t m a
+{% endhighlight %}
+
+Argument monad is the "inner" monad (`IO` in our example) and constructed monad is the actual
+monad transformer (`MaybeT` in our case).
+
+So this is the function that allows us to "lift" the inner monad's computation
+into the monad transformer realm, hence the name. It allows us to do this:
+
+{% highlight haskell %}
+fetchUsersData :: UserId -> IO (Maybe (String, String, Int))
+fetchUsersData userId = runMaybeT $ do
+    lift $ putStrLn "Fetching data..." -- <- NEW
+
+    name <- MaybeT $ fetchUsersName userId
+    surname <- MaybeT $ fetchUsersSurname userId
+    age <- MaybeT $ fetchUsersAge userId
+
+    return (name, surname, age)
+{% endhighlight %}
+
+`lift` here does exactly what it says in its signature, takes `IO ()` and lifts it into `MaybeT IO ()` so we can
+call this printing action within `MaybeT` monad.
+
+It is also maybe interesting to see how `MaybeT` implements `lift`:
+
+{% highlight haskell %}
+instance MonadTrans MaybeT where
+    lift = MaybeT . liftM Just
+{% endhighlight %}
+
+In the case of printing from above, `IO ()` would come in, `liftM Just` would produce `IO (Just ())` and then `MaybeT` data constructor would create an instance of `MaybeT IO ()` type.
+
+Phew, we just went through our first monad transformer! Let's now take a look at another on - `EitherT`.
+
+## EitherT
 

@@ -73,7 +73,7 @@ Here is what the [documentation](http://hackage.haskell.org/package/transformers
 *A monad transformer makes a new monad out of an existing monad, such that computations of
 the old monad may be embedded in the new one.*
 
-And then there is a typeclass `MonadTrans` which monad transfomer has to implement, which means
+And then there is a typeclass `MonadTrans` which every monad transfomer has to implement, which means
 monad transformer is actually a type. Monad transformer is a monad as well.
 
 Here is how it looks like in our case, where we want to extend `IO` with `Maybe` capabilities:
@@ -85,16 +85,16 @@ newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 `MaybeT m a` is a monad transformer version of `Maybe a`. There is only that extra `m` which stands
 for an "inner" monad that will be expanded with `Maybe` capabilities.
 
-Regarding the data constructor and field of `MaybeT`, here's another bit from the documentation:
+Regarding the named field of `MaybeT` (`runMaybeT`), here's another bit from the documentation:
 
 *Each monad transformer also comes with an operation `runXXXT` to unwrap the transformer, exposing a computation of the inner monad.*
 
-If we wrapped `IO` with `MaybeT` and then couldn't get it back again that would be a problem,
+If we wrapped `IO` within `MaybeT` and then couldn't get it back again that would be a problem,
 since the function we are implementing needs to return `IO (Maybe (String, String, Int))`.
 
 From this we can generalize and conclude that a monad transformer has:
-* one additional type parameter (compared to its monad counterpart) - a monad that is being
-expanded
+* one additional type parameter (compared to its monad counterpart) - an inner monad that is being
+expanded with capabilities of the outer monad
 * `runXXXT` function/field which returns the original, "inner" monad
 
 ## What does it mean "monads don't compose"?
@@ -180,7 +180,7 @@ instance Monad (MaybeT m) where
     return :: a -> MaybeT m a
     return = MaybeT . return . Just
 
-    -- if a computation within monad failed, shortcircuits to failed.
+    -- if a computation within monad failed, short-circuits to failed.
     (>>=) :: MaybeT m a -> (a -> MaybeT m b) -> MaybeT m b
     x >>= f = MaybeT $ do -- entering inner monad m
         v <- runMaybeT x  -- unpacking x from `MaybeT m a` to `Maybe a`
@@ -191,7 +191,7 @@ instance Monad (MaybeT m) where
 
 We can see that actually here `MaybeT` does the heavy lifting for us, what we previously did
 manually (staircasing example) - it operates within `m` (`IO` in the example) and gets to `Maybe a`
-and then checks does that "manual" check whether it is `Nothing` or not.
+and then does that "manual" check whether it is `Nothing` or not.
 
 ## Lifting
 
@@ -212,7 +212,7 @@ Argument monad is the "inner" monad (`IO` in our example) and constructed monad 
 monad transformer (`MaybeT` in our case).
 
 So this is the function that allows us to "lift" the inner monad's computation
-into the monad transformer realm, hence the name. It allows us to do this:
+into the monad transformer's realm, hence the name. It allows us to do this:
 
 {% highlight haskell %}
 fetchUsersData :: UserId -> IO (Maybe (String, String, Int))
@@ -238,7 +238,13 @@ instance MonadTrans MaybeT where
 
 In the case of printing from above, `IO ()` would come in, `liftM Just` would produce `IO (Just ())` and then `MaybeT` data constructor would create an instance of `MaybeT IO ()` type.
 
-Phew, we just went through our first monad transformer! Let's now take a look at another on - `EitherT`.
+Phew, we just went through our first monad transformer! Let's now take a look at another one - `ExceptT`.
 
-## EitherT
+## ExceptT
 
+`ExceptT` is a monad transformer version of `Either` and is very similar to `MaybeT`, just as `Either` is similar to `Maybe`.
+The only difference is that in the case of the failure the exception that is thrown actually contains a value (additional error data) rather than just `Nothing`.
+
+## ReaderT
+
+As we know, `Reader` monad is useful

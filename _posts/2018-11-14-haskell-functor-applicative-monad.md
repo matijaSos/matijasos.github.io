@@ -35,7 +35,7 @@ Functor is for mapping over parametrized types, such as `[]`, `Maybe`, trees, ..
 {% highlight haskell %}
 class Functor f where
     fmap :: (a -> b) -> f a -> f b
-    (<$>) :: (a -> b) -> f a -> f b
+    (<$>) :: (a -> b) -> f a -> f b -- inline version of fmap
 {% endhighlight %}
 
 `Functor` typeclass consists of one function only, `fmap`. `fmap` works like this:
@@ -45,9 +45,6 @@ class Functor f where
 * **output**: `f b` - transformed value with the same type of context
 
 `<$>` is just the infix version of `fmap`.
-
-### Cool stuff it can do
-Mapping over anything, either a predefined data structure or the one you created! How cool is that?
 
 ### When to use it
 When we have a value (e.g. `Just 10`) or data 
@@ -59,10 +56,28 @@ With functor, we can not change the type of the given context - e.g. after apply
 a transformation the list will still be a list, `Maybe`, will still be a `Maybe` etc.
 
 ### Examples
-In the process of finding cool examples.
 
+#### Mapping over a function
+This is an interesting example since mapping over a function is a bit less intuitive than mapping
+over "container" types such as `Maybe` or `Either`.
+But, function is nothing else than a (parametrized) type with two parameters, `(->) a b`, just
+like `Either a b`. So when we map over a function, the result will again be a function. And it works in the exactly the same way, with `b` being affected. In the context
+of a function it can mean only one thing: the mapping function is applied to the result of the
+function that is being mapped over, which is a function composition. We can also see in the Prelude source code that is
+exactly how the function type implements `Functor` typeclass:
+{% highlight haskell %}
+instance Functor ((->) r) where
+    fmap = (.)
+{% endhighlight %}
+
+Let's take a look at a few specific examples:
+* `(+1) <$> (*3)` - just as we mentioned, this will simply compose these two functions. So for `arg` given, it will return
+`(arg * 3) + 1`.
+* `(+) <$> (*3)` - very similar to the previous example, but with a twist that the mapping function takes two arguments, which means it returns a new function when given a single argument.
+For `arg1` and `arg2` given, it will return `(arg1 * 3) + arg2`.
+
+#### More example ideas
 * Show mapping over a function (e.g. parametrized newtype, like Parser in Real World Haskell).
-* Explain what does `(+) <$> (+3)` do
 
 ### Sources and additional reading
 * [LYAH Functor explanation](http://learnyouahaskell.com/making-our-own-types-and-typeclasses#

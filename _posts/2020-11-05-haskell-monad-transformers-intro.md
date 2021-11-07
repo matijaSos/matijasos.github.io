@@ -245,6 +245,68 @@ Phew, we just went through our first monad transformer! Let's now take a look at
 `ExceptT` is a monad transformer version of `Either` and is very similar to `MaybeT`, just as `Either` is similar to `Maybe`.
 The only difference is that in the case of the failure the exception that is thrown actually contains a value (additional error data) rather than just `Nothing`.
 
+Here is the type definition:
+{% highlight haskell %}
+newtype ExceptT e m a = ExceptT (m (Either e a)) -- e is the exception type
+
+runExceptT :: ExceptT e m a -> m (Either e a)
+runExceptT (ExceptT m) = m -- just unwraps and returns the inner monad
+{% endhighlight %}
+
+So let's just quickly go through the analogous example - let's assume we are given following API functions:
+{% highlight haskell %}
+type UserId = String
+type ErrorMsg = String
+
+fetchUsersName :: UserId -> IO (Either ErrorMsg String)
+
+fetchUsersAge :: UserId -> IO (Either ErrorMsg Int)
+{% endhighlight %}
+
+And we want to implement:
+{% highlight haskell %}
+fetchUsersData :: UserId -> IO (Either ErrorMsg (String, Int))
+{% endhighlight %}
+
+If we try do to it without `ExceptT` monad transformer, we'll again bump into the staircasing issue:
+{% highlight haskell %}
+fetchUsersDataNoT :: UserId -> IO (Either ErrorMsg (String, Int))
+fetchUsersDataNoT userId = do
+  nameE <- fetchUsersName userId
+  case nameE of
+    Left nameError -> return $ Left nameError
+    Right name -> do
+      ageE <- fetchUsersAge userId
+      case ageE of
+        Left ageError -> return $ Left ageError
+        Right age -> return $ Right (name, age)
+{% endhighlight %}
+
+Now let's try with `ExceptT`:
+{% highlight haskell %}
+fetchUsersData :: UserId -> IO (Either ErrorMsg (String, Int))
+fetchUsersData userId = runExceptT $ do
+  lift $ putStrLn "Fetching user's data..."
+
+  name <- ExceptT $ fetchUsersName userId
+  age <- ExceptT $ fetchUsersAge userId
+
+  return (name, age)
+{% endhighlight %}
+
+Nice! Let's also take a look at how `ExceptT` implements `Monad`:
+{% highlight haskell %}
+instance (Monad m) => Monad (ExceptT e m) where
+    return a = ExceptT $ return (Right a) -- wraps it in the inner monad
+
+    m >>= k = ExceptT $ do -- enter inner monad
+        a <- runExceptT m -- run inner monad computation
+        case a of
+            Left e -> return (Left e) -- end early
+            Right x -> runExceptT (k x) -- continue with the execution
+{% endhighlight %}
+And that's it! This is almost exactly the same as `MaybeT`, the only difference being the error message that `Either` brings with itself.
+
 ## ReaderT
 
 As we know, `Reader` monad is useful
